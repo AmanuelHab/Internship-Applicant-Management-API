@@ -1,0 +1,65 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Get a free hosted Postgres database in seconds: `npx create-db`
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id Int @id @default(autoincrement())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  deletedAt DateTime?
+
+  email String @unique
+  passwordHash String
+  userName String?
+  role Role @default(USER)
+
+  applications Application[] @relation("applicant")
+  reviews Application[] @relation("reviewer")
+
+  @@map("users")
+}
+enum Role {
+  USER 
+  ADMIN 
+}
+
+model Application {
+  id Int @id @default(autoincrement())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  applicantId Int
+  reviewerId Int?
+  status ApplicationStatus @default(PENDING)
+  note String? @db.VarChar(1000)
+  track Tracks
+  submittedAt DateTime @default(now())
+
+  applicant User @relation("applicant", fields: [applicantId], references: [id])
+  reviewer User? @relation("reviewer", fields: [reviewerId], references: [id])
+
+  @@map("applications")
+}
+enum Tracks {
+  FRONTEND
+  BACKEND
+  MOBILE
+  UIUX
+  DATAANALYTICS
+}
+enum ApplicationStatus {
+  ACCEPTED
+  REJECTED
+  PENDING
+  SHORTLISTED
+}
