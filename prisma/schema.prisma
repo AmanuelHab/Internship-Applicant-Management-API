@@ -15,48 +15,42 @@ datasource db {
 
 model User {
   id Int @id @default(autoincrement())
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  deletedAt DateTime?
-
   email String @unique
   passwordHash String
-  userName String?
-  role Role @default(USER)
-
-  applications Application[] @relation("applicant")
-  reviews Application[] @relation("reviewer")
+  role Role @default(ADMIN)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@map("users")
 }
 enum Role {
-  USER 
   ADMIN 
 }
 
-model Application {
+model Applicant {
   id Int @id @default(autoincrement())
+  firstName String
+  lastName String
+  email String @unique
+  phone String?
+  status ApplicationStatus @default(PENDING)
+  note String? @db.VarChar(1000)
+  track Track
+  appliedDate DateTime @default(now())
+
+  deletedAt DateTime?
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  applicantId Int
-  reviewerId Int?
-  status ApplicationStatus @default(PENDING)
-  note String? @db.VarChar(1000)
-  track Tracks
-  submittedAt DateTime @default(now())
-
-  applicant User @relation("applicant", fields: [applicantId], references: [id])
-  reviewer User? @relation("reviewer", fields: [reviewerId], references: [id])
-
-  @@map("applications")
+  @@map("applicants")
 }
-enum Tracks {
-  FRONTEND
-  BACKEND
-  MOBILE
-  UIUX
-  DATAANALYTICS
+enum Track {
+  FRONTEND_DEVELOPMENT
+  BACKEND_DEVELOPMENT
+  MOBILE_DEVELOPMENT
+  UI_UX_DESIGN
+  DATA_ANALYTICS
 }
 enum ApplicationStatus {
   ACCEPTED
