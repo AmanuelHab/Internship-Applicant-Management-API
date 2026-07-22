@@ -31,7 +31,7 @@ export class ApplicantController {
     updateStatus(@Param('id', ParseIntPipe) id: number,
                  @Body() updateStatusDto: UpdateStatusDto){ return this.applicantService.updateStatus(id, updateStatusDto)}
 
-    @Patch(':id/notes')
+    @Patch(':id/note')
     updateNote(@Param('id', ParseIntPipe) id: number,
                 @Body() updateNoteDto: UpdateNoteDto) { return this.applicantService.updateNote(id,updateNoteDto)}
     

@@ -12,27 +12,90 @@ export class ApplicantService {
     constructor(private prisma: PrismaService){}
 
     // GET
-    async findAll(){}
+    async findAll(){
+        return this.prisma.applicant.findMany({
+            where:{ deletedAt: null}
+        })
+    }
 
     // Get :id
-    async findOne(id){}
+    async findOne(id: number){
+        return this.prisma.applicant.findUnique({
+            where: {
+                id: id,
+                deletedAt: null,
+            }
+        })
+    }
 
     // Post 
-    createApplicant(createApplicantDto: CreateApplicantDto){}
+    async createApplicant(createApplicantDto: CreateApplicantDto){
+        return this.prisma.applicant.create({
+            data: {
+               firstName: createApplicantDto.firstName,
+               lastName: createApplicantDto.lastName,
+               email: createApplicantDto.email,
+               phone: createApplicantDto.phone,
+               note: createApplicantDto.note,
+               track: createApplicantDto.track,
+               appliedDate: createApplicantDto.appliedDate 
+            }
+        });
+    }
 
     // Patch :id
-    updateApplicant(id, updateApplicantDto: UpdateApplicantDto){}
+    async updateApplicant(id: number, data: UpdateApplicantDto){
+        return this.prisma.applicant.update({
+            where: {
+                id: id,
+                deletedAt: null
+            },
+            data
+        });
+    }
 
     // Delete :id 
-    deleteApplicant(id){}
+    async deleteApplicant(id: number){
+        return this.prisma.applicant.update({
+            where: {
+                id: id,
+                deletedAt: null
+            },
+            data: { deletedAt: new Date()}
+        })
+    }
 
     // Patch :id/status
-    updateStatus(id, updateStatusDto: UpdateStatusDto){}
+    updateStatus(id: number, updateStatusDto: UpdateStatusDto){
+        return this.prisma.applicant.update({
+            where: {
+                id: id,
+                deletedAt: null,
+            },
+            data: { status: updateStatusDto.status }
+        })
+    }
 
     // Patch :id/notes
-    updateNote(id, updateNoteDto: UpdateNoteDto){}
+    updateNote(id: number, updateNoteDto: UpdateNoteDto){
+        return this.prisma.applicant.update({
+            where:{ 
+                id: id,
+                deletedAt: null,
+            },
+            data: {note: updateNoteDto.note }
+        });
+    }
 
     // Patch :id/track
-    updateTrack(id, updateTrackDto: UpdateTrackDto){}
+    updateTrack(id: number, updateTrackDto: UpdateTrackDto){
+        return this.prisma.applicant.update({
+            where: {
+                id: id,
+                deletedAt: null,
+            },
+            data: {track: updateTrackDto.track}
+        });
+    }
 
 }
