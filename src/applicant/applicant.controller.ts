@@ -1,10 +1,6 @@
 import { Body, Controller, Delete, Get, Param, ParseIntPipe, Patch, Post } from "@nestjs/common";
 import { ApplicantService } from "./applicant.service";
-import { CreateApplicantDto } from "./dto/create-applicant.dto";
-import { UpdateApplicantDto } from "./dto/update-applicant.dto";
-import { UpdateStatusDto } from "./dto/update-status.dto";
-import { UpdateNoteDto } from "./dto/update-note.dto";
-import { UpdateTrackDto } from "./dto/update-track.dto";
+import { CreateApplicantDto, UpdateApplicantDto, UpdateStatusDto, UpdateNoteDto, UpdateTrackDto } from "./dto";
 
 @Controller('applicants')
 
