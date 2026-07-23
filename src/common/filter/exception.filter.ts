@@ -8,19 +8,19 @@ export class GlobalExceptionFilter implements ExceptionFilter{
         const ctx = host.switchToHttp();
         const response = ctx.getResponse<Response>();
 
-        let status = HttpStatus.INTERNAL_SERVER_ERROR;
+        const status = exception instanceof HttpException? exception.getStatus(): HttpStatus.INTERNAL_SERVER_ERROR;
         let message = 'Internal server error';
         let errors = null;
 
         if(exception instanceof HttpException){
-            status = exception.getStatus();
-            const errorResponse = exception.getResponse();
+            const exceptionResponse = exception.getResponse();
 
-            if(typeof errorResponse === 'string'){
-                message = errorResponse;
-            }else if(typeof errorResponse === 'object'){
-                message = errorResponse.message || message;
-                errors = errorResponse.errors || null; 
+            if(typeof exceptionResponse === 'string'){
+                message = exceptionResponse;
+            }else if(typeof exceptionResponse === 'object' && exceptionResponse !== null){
+                const errorObj = exceptionResponse as {message?: string; errors?: any; error?: any};
+                message = errorObj.message || message;
+                errors = errorObj.errors || errorObj.error || null; 
             }
         }
 

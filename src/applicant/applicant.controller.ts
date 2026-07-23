@@ -1,6 +1,7 @@
 import { Body, Controller, Delete, Get, Param, ParseIntPipe, Patch, Post } from "@nestjs/common";
 import { ApplicantService } from "./applicant.service";
 import { CreateApplicantDto, UpdateApplicantDto, UpdateStatusDto, UpdateNoteDto, UpdateTrackDto } from "./dto";
+import { ResponseUtil } from "src/common/utils/response.util";
 
 @Controller('applicants')
 
@@ -8,33 +9,51 @@ export class ApplicantController {
     constructor(private applicantService: ApplicantService){}
 
     @Get()
-    findAll(){ return this.applicantService.findAll();}
+    async findAll(){ 
+        const applicants = await this.applicantService.findAll();
+        return ResponseUtil.success(200, 'Applicants retrieved successfully', applicants)
+    }
 
     @Get(':id')
-    findOne(@Param('id', ParseIntPipe) id: number){ return this.applicantService.findOne(id)}
+    async findOne(@Param('id', ParseIntPipe) id: number){ 
+        const applicant = await this.applicantService.findOne(id);
+        return ResponseUtil.success(200, 'Applicant retrieved successfully', applicant);
+    }
 
     @Post()
-    createApplicant(@Body() createApplicantDto: CreateApplicantDto){ return this.applicantService.createApplicant(createApplicantDto); }
+    async createApplicant(@Body() createApplicantDto: CreateApplicantDto){ 
+        const applicant = await this.applicantService.createApplicant(createApplicantDto);
+        return ResponseUtil.success(201, 'Applicant created successfully', applicant);
+    }
 
     @Patch(':id')
-    updateApplicant(@Param('id', ParseIntPipe) id: number,
-                    @Body() updateApplicantDto: UpdateApplicantDto){ return this.applicantService.updateApplicant(id, updateApplicantDto); }
+    async updateApplicant(@Param('id', ParseIntPipe) id: number, @Body() updateApplicantDto: UpdateApplicantDto){ 
+        const applicant = await this.applicantService.updateApplicant(id, updateApplicantDto);
+        return ResponseUtil.success(200, 'Applicant updated successfully', applicant);
+    }
 
     @Delete(':id')
-    deleteApplicant(@Param('id', ParseIntPipe) id: number){ return this.applicantService.deleteApplicant(id); }
+    async deleteApplicant(@Param('id', ParseIntPipe) id: number){ 
+        const applicant = await this.applicantService.deleteApplicant(id);
+        return ResponseUtil.success(200, 'Applicant deleted successfully', applicant);
+    }
 
     @Patch(':id/status')
-    updateStatus(@Param('id', ParseIntPipe) id: number,
-                 @Body() updateStatusDto: UpdateStatusDto){ return this.applicantService.updateStatus(id, updateStatusDto)}
+    async updateStatus(@Param('id', ParseIntPipe) id: number, @Body() updateStatusDto: UpdateStatusDto){ 
+        const applicant = await this.applicantService.updateStatus(id, updateStatusDto);
+        return ResponseUtil.success(200, 'Applicant updated successfully', applicant);
+    }
 
     @Patch(':id/note')
-    updateNote(@Param('id', ParseIntPipe) id: number,
-                @Body() updateNoteDto: UpdateNoteDto) { return this.applicantService.updateNote(id,updateNoteDto)}
+    async updateNote(@Param('id', ParseIntPipe) id: number, @Body() updateNoteDto: UpdateNoteDto) { 
+        const applicant = await this.applicantService.updateNote(id,updateNoteDto);
+        return ResponseUtil.success(200, 'Applicant updated successfully', applicant);
+    }
     
     @Patch(':id/track')
-    updateTrack(@Param('id', ParseIntPipe) id: number,
-                @Body() updateTrackDto: UpdateTrackDto){
-                    return this.applicantService.updateTrack(id, updateTrackDto);
-                }
+    async updateTrack(@Param('id', ParseIntPipe) id: number, @Body() updateTrackDto: UpdateTrackDto){
+        const applicant = await this.applicantService.updateTrack(id, updateTrackDto);
+        return ResponseUtil.success(200, 'Applicant updated successfully', applicant);
+    }
 
 }
