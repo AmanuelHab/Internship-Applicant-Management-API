@@ -1,3 +1,4 @@
+import { Type } from "class-transformer";
 import { IsDate, IsEmail, IsEnum, IsNotEmpty, IsOptional, IsString, MaxLength } from "class-validator";
 import { Track } from "src/generated/prisma/enums";
 
@@ -29,6 +30,7 @@ export class CreateApplicantDto{
     track: Track;
 
     @IsOptional()
+    @Type(() => Date)
     @IsDate({message: 'Applied date must be a date'})
     appliedDate: Date;
 }

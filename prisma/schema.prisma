@@ -31,7 +31,7 @@ model Applicant {
   id Int @id @default(autoincrement())
   firstName String
   lastName String
-  email String @unique
+  email String
   phone String?
   status ApplicationStatus @default(PENDING)
   note String? @db.VarChar(1000)

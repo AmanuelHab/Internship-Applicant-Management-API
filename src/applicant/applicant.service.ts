@@ -1,6 +1,8 @@
-import { Injectable } from "@nestjs/common";
+import { BadRequestException, Injectable } from "@nestjs/common";
 import { PrismaService } from "src/prisma/prisma.service";
-import { CreateApplicantDto, UpdateApplicantDto, UpdateStatusDto, UpdateNoteDto, UpdateTrackDto } from "./dto";
+import { CreateApplicantDto, UpdateApplicantDto, UpdateStatusDto, UpdateNoteDto, UpdateTrackDto, ApplicantsQueryDto } from "./dto";
+import { ApplicationStatus } from "generated/prisma/enums";
+import { Prisma } from "src/generated/prisma/client";
 
 @Injectable()
 
@@ -8,20 +10,54 @@ export class ApplicantService {
     constructor(private prisma: PrismaService){}
 
     // GET
-    async findAll(){
-        return this.prisma.applicant.findMany({
-            where:{ deletedAt: null}
-        })
+    async findAll(query: ApplicantsQueryDto){
+        const {page, limit, search, status, track, sortBy, order } = query;
+        const where: Prisma.ApplicantWhereInput = {
+            deletedAt: null,
+            ...(status ? {status }: {}),
+            ...(track ? { track }: {}),
+            ...(search
+                ? {
+                    OR: [
+                        { firstName: {contains: search, mode: 'insensitive'}},
+                        { lastName: { contains: search, mode: 'insensitive'}},
+                        { email: { contains: search, mode: 'insensitive'}}
+                    ],
+                }: {}),
+        }
+        const [data, total] = await this.prisma.$transaction([
+                this.prisma.applicant.findMany({
+                where,
+                orderBy: {[sortBy]: order},
+                skip: (page - 1) * limit,
+                take: limit,
+            }),
+            this.prisma.applicant.count({ where})
+        ]);
+
+        return {
+            data,
+            meta: {
+                total,
+                page,
+                limit,
+                totalPages: Math.max(1, Math.ceil(total / limit))
+            }
+        };
     }
 
     // Get :id
     async findOne(id: number){
-        return this.prisma.applicant.findUnique({
+        const user = this.prisma.applicant.findUnique({
             where: {
                 id: id,
                 deletedAt: null,
             }
-        })
+        });
+        if(!user){
+            throw new BadRequestException('User not found');
+        }
+        return user;
     }
 
     // Post 
@@ -62,7 +98,11 @@ export class ApplicantService {
     }
 
     // Patch :id/status
-    updateStatus(id: number, updateStatusDto: UpdateStatusDto){
+    async updateStatus(id: number, updateStatusDto: UpdateStatusDto){
+        const applicant = await this.findOne(id);
+        if(applicant && applicant.status === ApplicationStatus.REJECTED && updateStatusDto.status === ApplicationStatus.ACCEPTED){
+            throw new BadRequestException('An applicant cannot move directly from Rejected to Accepted')
+        }
         return this.prisma.applicant.update({
             where: {
                 id: id,
@@ -73,7 +113,7 @@ export class ApplicantService {
     }
 
     // Patch :id/notes
-    updateNote(id: number, updateNoteDto: UpdateNoteDto){
+    async updateNote(id: number, updateNoteDto: UpdateNoteDto){
         return this.prisma.applicant.update({
             where:{ 
                 id: id,
@@ -84,7 +124,7 @@ export class ApplicantService {
     }
 
     // Patch :id/track
-    updateTrack(id: number, updateTrackDto: UpdateTrackDto){
+    async updateTrack(id: number, updateTrackDto: UpdateTrackDto){
         return this.prisma.applicant.update({
             where: {
                 id: id,

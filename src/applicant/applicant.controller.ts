@@ -1,16 +1,21 @@
-import { Body, Controller, Delete, Get, Param, ParseIntPipe, Patch, Post } from "@nestjs/common";
+import { Body, Controller, Delete, Get, Param, ParseIntPipe, Patch, Post, Query, UseGuards } from "@nestjs/common";
 import { ApplicantService } from "./applicant.service";
-import { CreateApplicantDto, UpdateApplicantDto, UpdateStatusDto, UpdateNoteDto, UpdateTrackDto } from "./dto";
+import { CreateApplicantDto, UpdateApplicantDto, UpdateStatusDto, UpdateNoteDto, UpdateTrackDto, ApplicantsQueryDto } from "./dto";
 import { ResponseUtil } from "src/common/utils/response.util";
+import { AuthGuard } from "@nestjs/passport";
+import { ApiBearerAuth, ApiTags } from "@nestjs/swagger";
 
+@ApiTags('Applicants')
+@ApiBearerAuth('access-token')
+@UseGuards(AuthGuard('jwt'))
 @Controller('applicants')
 
 export class ApplicantController {
     constructor(private applicantService: ApplicantService){}
 
     @Get()
-    async findAll(){ 
-        const applicants = await this.applicantService.findAll();
+    async findAll(@Query() query: ApplicantsQueryDto){ 
+        const applicants = await this.applicantService.findAll(query);
         return ResponseUtil.success(200, 'Applicants retrieved successfully', applicants)
     }
 

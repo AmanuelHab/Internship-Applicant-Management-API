@@ -40,7 +40,8 @@ export class AuthService {
             data:{
                 email: signupDto.email,
                 passwordHash,
-            }
+            },
+            omit: {passwordHash: true}
         });
         return user;
     }
@@ -50,10 +51,7 @@ export class AuthService {
             sub: userId,
             email,
         }
-
-        return this.jwt.signAsync(payload, {
-            expiresIn: '15m',
-            secret: process.env.JWT_SECRET
-        });
+        
+        return this.jwt.signAsync(payload);
     }
 }
