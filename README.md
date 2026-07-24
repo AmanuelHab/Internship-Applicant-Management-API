@@ -1,100 +1,120 @@
 # Internship Applicant Management API
 
-<p align="center">
-  <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="120" alt="Nest Logo" /></a>
-</p>
+A NestJS + Prisma REST API for managing internship applications: admin auth, applicant CRUD with search/filter/pagination, status and notes management, and dashboard statistics.
 
-[circleci-image]: https://img.shields.io/circleci/build/github/nestjs/nest/master?token=abc123def456
-[circleci-url]: https://circleci.com/gh/nestjs/nest
+## Technologies used
 
-  <p align="center">A progressive <a href="http://nodejs.org" target="_blank">Node.js</a> framework for building efficient and scalable server-side applications.</p>
-    <p align="center">
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/v/@nestjs/core.svg" alt="NPM Version" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/l/@nestjs/core.svg" alt="Package License" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/dm/@nestjs/common.svg" alt="NPM Downloads" /></a>
-<a href="https://circleci.com/gh/nestjs/nest" target="_blank"><img src="https://img.shields.io/circleci/build/github/nestjs/nest/master" alt="CircleCI" /></a>
-<a href="https://discord.gg/G7Qnnhy" target="_blank"><img src="https://img.shields.io/badge/discord-online-brightgreen.svg" alt="Discord"/></a>
-<a href="https://opencollective.com/nest#backer" target="_blank"><img src="https://opencollective.com/nest/backers/badge.svg" alt="Backers on Open Collective" /></a>
-<a href="https://opencollective.com/nest#sponsor" target="_blank"><img src="https://opencollective.com/nest/sponsors/badge.svg" alt="Sponsors on Open Collective" /></a>
-  <a href="https://paypal.me/kamilmysliwiec" target="_blank"><img src="https://img.shields.io/badge/Donate-PayPal-ff3f59.svg" alt="Donate us"/></a>
-    <a href="https://opencollective.com/nest#sponsor"  target="_blank"><img src="https://img.shields.io/badge/Support%20us-Open%20Collective-41B883.svg" alt="Support us"></a>
-  <a href="https://twitter.com/nestframework" target="_blank"><img src="https://img.shields.io/twitter/follow/nestframework.svg?style=social&label=Follow" alt="Follow us on Twitter"></a>
-</p>
-  <!--[![Backers on Open Collective](https://opencollective.com/nest/backers/badge.svg)](https://opencollective.com/nest#backer)
-  [![Sponsors on Open Collective](https://opencollective.com/nest/sponsors/badge.svg)](https://opencollective.com/nest#sponsor)-->
+- **NestJS** (TypeScript) — application framework
+- **Prisma ORM** with the `prisma-client` (Postgres) driver adapter
+- **PostgreSQL** — relational database
+- **Passport + `@nestjs/jwt`** — bearer-token (JWT) authentication
+- **argon2** — password hashing
+- **class-validator / class-transformer** — DTO-based request validation
+- **@nestjs/swagger** — OpenAPI documentation
+- **Jest** — testing
 
-## Description
+## Setup instructions
 
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
+1. Install dependencies:
+   ```bash
+   npm install
+   ```
+2. Copy the environment template and fill in real values:
+   ```bash
+   cp .env.example .env
+   ```
+3. Start Postgres (Docker Compose is provided and reads its credentials from `.env`):
+   ```bash
+   docker compose up -d
+   ```
+4. Run migrations and generate the Prisma client:
+   ```bash
+   npx prisma migrate deploy   # apply existing migrations
+   npx prisma generate         # regenerate the client into src/generated/prisma
+   ```
+5. Start the app:
+   ```bash
+   npm run start:dev
+   ```
+   The API is served under the `/api` prefix, e.g. `http://localhost:3000/api`.
 
-## Project setup
+### Migration commands
 
+- Create a new migration during development: `npx prisma migrate dev --name <description>`
+- Apply existing migrations (e.g. in CI/production): `npx prisma migrate deploy`
+- Inspect the database with Prisma Studio: `npx prisma studio`
+
+### Seed data
+
+There is no seed script yet. To try the API, register an admin manually:
 ```bash
-$ npm install
+curl -X POST http://localhost:3000/api/auth/signup \
+  -H "Content-Type: application/json" \
+  -d '{"email":"admin@example.com","password":"ChangeMe123!"}'
 ```
 
-## Compile and run the project
+## Authentication
 
-```bash
-# development
-$ npm run start
+- `POST /api/auth/signup` — create an admin user (email + password).
+- `POST /api/auth/login` — returns a JWT bearer token.
+- `GET /api/auth/me` — returns the authenticated user (requires `Authorization: Bearer <token>`).
+- All `/api/applicants/*` and `/api/dashboard/*` routes require a valid bearer token.
 
-# watch mode
-$ npm run start:dev
+Token lifetime is controlled by `TOKEN_EXPIRATION` (seconds) in `.env`.
 
-# production mode
-$ npm run start:prod
+## API documentation
+
+Interactive Swagger/OpenAPI docs are available once the app is running:
+
+```
+http://localhost:3000/api/docs
 ```
 
-## Run tests
+Use the "Authorize" button with a bearer token from `/api/auth/login` to try protected routes.
+
+## Architecture
+
+- `src/auth` — signup/login, JWT strategy (`AuthGuard('jwt')`), password hashing with argon2.
+- `src/applicant` — applicant CRUD, status/notes/track updates, and paginated/searchable/filterable listing. Controllers stay thin; all business logic (soft-delete filtering, status-transition rules, query building) lives in `ApplicantService`.
+- `src/dashboard` — aggregate statistics (totals by status and track), excluding soft-deleted applicants.
+- `src/prisma` — `PrismaService`, a globally-available wrapper around the generated Prisma client.
+- `src/common` — cross-cutting concerns: a global exception filter (consistent `{statusCode, success, message, data, meta, errors}` envelope), a response-shaping utility, and shared interfaces.
+- `prisma/schema.prisma` — data model (`User`, `Applicant`) and migrations.
+
+### Business rules enforced
+
+- Applicant emails are unique (DB constraint + Prisma error surfaces as a request error).
+- Notes are capped at 1,000 characters (DTO validation + DB column constraint).
+- An applicant cannot move directly from `REJECTED` to `ACCEPTED` (enforced in `ApplicantService.updateStatus`).
+- Applicants are soft-deleted (`deletedAt` timestamp) and excluded from all normal list/detail/dashboard queries.
+- Only authenticated requests can create, update, or delete applicants (`AuthGuard('jwt')` on the controller).
+
+### Listing applicants
+
+`GET /api/applicants` supports:
+
+| Query param | Description |
+|---|---|
+| `page`, `limit` | Pagination (default `page=1`, `limit=10`, max `limit=100`) |
+| `search` | Case-insensitive match against first name, last name, email |
+| `status` | Filter by `PENDING` / `SHORTLISTED` / `ACCEPTED` / `REJECTED` |
+| `track` | Filter by internship track |
+| `sortBy` | `firstName`, `lastName`, `email`, `appliedDate`, `status`, `track`, `createdAt` (default `createdAt`) |
+| `order` | `asc` or `desc` (default `desc`) |
+
+The response includes a `meta` object: `{ total, page, limit, totalPages }`.
+
+## Testing instructions
 
 ```bash
-# unit tests
-$ npm run test
-
-# e2e tests
-$ npm run test:e2e
-
-# test coverage
-$ npm run test:cov
+npm run test        # unit tests
+npm run test:e2e    # end-to-end tests
+npm run test:cov     # coverage
 ```
 
-## Deployment
+## Assumptions and known limitations
 
-When you're ready to deploy your NestJS application to production, there are some key steps you can take to ensure it runs as efficiently as possible. Check out the [deployment documentation](https://docs.nestjs.com/deployment) for more information.
-
-If you are looking for a cloud-based platform to deploy your NestJS application, check out [Mau](https://mau.nestjs.com), our official platform for deploying NestJS applications on AWS. Mau makes deployment straightforward and fast, requiring just a few simple steps:
-
-```bash
-$ npm install -g @nestjs/mau
-$ mau deploy
-```
-
-With Mau, you can deploy your application in just a few clicks, allowing you to focus on building features rather than managing infrastructure.
-
-## Resources
-
-Check out a few resources that may come in handy when working with NestJS:
-
-- Visit the [NestJS Documentation](https://docs.nestjs.com) to learn more about the framework.
-- For questions and support, please visit our [Discord channel](https://discord.gg/G7Qnnhy).
-- To dive deeper and get more hands-on experience, check out our official video [courses](https://courses.nestjs.com/).
-- Deploy your application to AWS with the help of [NestJS Mau](https://mau.nestjs.com) in just a few clicks.
-- Visualize your application graph and interact with the NestJS application in real-time using [NestJS Devtools](https://devtools.nestjs.com).
-- Need help with your project (part-time to full-time)? Check out our official [enterprise support](https://enterprise.nestjs.com).
-- To stay in the loop and get updates, follow us on [X](https://x.com/nestframework) and [LinkedIn](https://linkedin.com/company/nestjs).
-- Looking for a job, or have a job to offer? Check out our official [Jobs board](https://jobs.nestjs.com).
-
-## Support
-
-Nest is an MIT-licensed open source project. It can grow thanks to the sponsors and support by the amazing backers. If you'd like to join them, please [read more here](https://docs.nestjs.com/support).
-
-## Stay in touch
-
-- Author - [Kamil Myśliwiec](https://twitter.com/kammysliwiec)
-- Website - [https://nestjs.com](https://nestjs.com/)
-- Twitter - [@nestframework](https://twitter.com/nestframework)
-
-## License
-
-Nest is [MIT licensed](https://github.com/nestjs/nest/blob/master/LICENSE).
+- No seed script is included yet; the first admin user must be created via `POST /api/auth/signup`.
+- `PrismaService` currently builds its connection string from `POSTGRES_*` env vars with a hardcoded port (`5434`), matching `docker-compose.yml`, rather than reading a single `DATABASE_URL`.
+- Test coverage for the auth and applicant modules is still minimal (only the default scaffolded test exists) — expanding this is a known gap, not an oversight.
+- Rate limiting and refresh tokens are out of scope for this challenge.
